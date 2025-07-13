@@ -80,6 +80,13 @@ DASHBOARD_VIEW_CONFIG = {
                         {"entity": "binary_sensor.sgready_2", "name": "SGready 2", "icon": "mdi:flash"},
                     ],
                 },
+                {
+                    "type": "entities",
+                    "title": "Fehlermeldungen",
+                    "entities": [
+                        {"entity": "sensor.aktive_fehlermeldung", "name": "Aktive Fehlermeldung", "icon": "mdi:alert-circle-outline"},
+                    ],
+                },
             ],
         },
         {
@@ -175,17 +182,6 @@ DASHBOARD_VIEW_CONFIG = {
                         {"entity": "sensor.reservefuhler_3_temperatur", "name": "Reservefühler 3 Temperatur"},
                     ],
                 },
-            ],
-        },
-        {
-            "title": "Störungen",
-            "type": "grid",
-            "cards": [
-                {
-                    "type": "entities",
-                    "title": "Fehlermeldungen",
-                    "entities": [{"entity": "sensor.aktive_fehlermeldung", "name": "Aktive Fehlermeldung", "icon": "mdi:alert-circle-outline"}],
-                }
             ],
         },
     ],
