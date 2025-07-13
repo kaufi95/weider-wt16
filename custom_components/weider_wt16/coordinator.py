@@ -180,7 +180,7 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
                 (60164, "wp1_letzte_laufzeit_pumpe"),
                 (60168, "wp1_letzte_laufzeit_warmwasser"),
             ]
-            
+
             for address, key in runtime_registers:
                 total_registers += 1
                 result = self._read_register_with_retry(client, "input", address, count=2)
@@ -197,8 +197,8 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
                 text_bytes = []
                 for reg in result.registers:
                     text_bytes.append((reg >> 8) & 0xFF)  # High byte
-                    text_bytes.append(reg & 0xFF)         # Low byte
-                
+                    text_bytes.append(reg & 0xFF)  # Low byte
+
                 # Convert bytes to string, removing null terminators
                 try:
                     error_text = bytes(text_bytes).decode('utf-8', errors='ignore').rstrip('\x00')
@@ -208,13 +208,6 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
                 successful_reads += 1
 
             client.close()
-
-            # Log success rate
-            success_rate = (successful_reads / total_registers * 100) if total_registers > 0 else 0
-            if success_rate < 80:
-                _LOGGER.warning("Low success rate reading registers: %.1f%% (%d/%d)", success_rate, successful_reads, total_registers)
-            else:
-                _LOGGER.debug("Successfully read %.1f%% of registers (%d/%d)", success_rate, successful_reads, total_registers)
 
             # Raise error if we couldn't read any critical registers
             if successful_reads == 0:
