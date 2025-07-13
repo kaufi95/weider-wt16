@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Weider WT16 Wärmepumpe Einrichtung",
+        "description": "Geben Sie die Verbindungsdetails für Ihre Weider WT16 Wärmepumpe ein.",
+        "data": {
+          "host": "IP-Adresse",
+          "port": "Port",
+          "modbus_addr": "Modbus-Adresse",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+        }
+      },
+      "dashboard": {
+        "title": "Dashboard-Ansicht erstellen",
+        "description": "Möchten Sie eine Dashboard-Ansicht für Ihre Wärmepumpe erstellen? {dashboard_info}",
+        "data": {
+          "create_dashboard": "Dashboard-Ansicht erstellen"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "TCP-Verbindung konnte nicht hergestellt werden. Überprüfen Sie die IP-Adresse und Netzwerkverbindung.",
+      "connection_refused": "Verbindung abgelehnt. Überprüfen Sie, ob Modbus TCP an der Wärmepumpe aktiviert ist und Port 502 erreichbar ist.",
+      "timeout": "Verbindungs-Timeout. Überprüfen Sie, ob die Wärmepumpe erreichbar ist und antwortet.",
+      "no_route": "Keine Route zum Host. Überprüfen Sie die IP-Adresse und Netzwerkkonfiguration.",
+      "network_error": "Netzwerkfehler aufgetreten. Überprüfen Sie Ihre Netzwerkeinstellungen.",
+      "modbus_error": "Modbus-Kommunikation fehlgeschlagen. Überprüfen Sie die Modbus-Adresse und Wärmepumpen-Konfiguration.",
+      "unknown": "Unerwarteter Fehler aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert"
+    }
+  }
+}

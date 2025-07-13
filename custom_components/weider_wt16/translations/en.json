@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Weider WT16 Heat Pump Setup",
+        "description": "Enter the connection details for your Weider WT16 heat pump.",
+        "data": {
+          "host": "IP Address",
+          "port": "Port",
+          "modbus_addr": "Modbus Address",
+          "scan_interval": "Update Interval (seconds)"
+        }
+      },
+      "dashboard": {
+        "title": "Create Dashboard View",
+        "description": "Would you like to create a dashboard view for your heat pump? {dashboard_info}",
+        "data": {
+          "create_dashboard": "Create Dashboard View"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to establish TCP connection. Check IP address and network connection.",
+      "connection_refused": "Connection refused. Check if Modbus TCP is enabled on the heat pump and port 502 is accessible.",
+      "timeout": "Connection timeout. Check if the heat pump is reachable and responding.",
+      "no_route": "No route to host. Check IP address and network configuration.",
+      "network_error": "Network error occurred. Check your network settings.",
+      "modbus_error": "Modbus communication failed. Check Modbus address and heat pump configuration.",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}
