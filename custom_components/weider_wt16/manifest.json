@@ -1,9 +1,9 @@
 {
   "domain": "weider_wt16",
   "name": "Weider",
-  "codeowners": ["@kaufi"],
+  "codeowners": ["@kaufi95"],
   "config_flow": true,
-  "documentation": "https://github.com/kaufi/weider-wt16",
+  "documentation": "https://github.com/kaufi95/weider-wt16",
   "integration_type": "device",
   "iot_class": "local_polling",
   "requirements": ["pymodbus>=3.0.0"],

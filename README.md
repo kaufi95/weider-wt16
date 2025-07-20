@@ -13,6 +13,7 @@ A custom Home Assistant integration for monitoring and controlling Weider WT16 h
 ## Installation
 
 ### HACS (Recommended)
+
 1. Open HACS in Home Assistant
 2. Click on "Integrations"
 3. Click the three dots in the top right corner and select "Custom repositories"
@@ -21,6 +22,7 @@ A custom Home Assistant integration for monitoring and controlling Weider WT16 h
 6. Restart Home Assistant
 
 ### Manual Installation
+
 1. Copy the `custom_components/weider_wt16` folder to your Home Assistant `custom_components` directory
 2. Restart Home Assistant
 
@@ -34,6 +36,7 @@ A custom Home Assistant integration for monitoring and controlling Weider WT16 h
 ## Available Entities
 
 ### Sensors
+
 - Room temperature (actual and setpoint)
 - Hot water temperature (actual and setpoint)
 - Various heat pump temperatures (flow, return, evaporator, etc.)
@@ -42,6 +45,7 @@ A custom Home Assistant integration for monitoring and controlling Weider WT16 h
 - Runtime counters
 
 ### Binary Sensors
+
 - Compressor status
 - Pump states (heating, hot water, mixer)
 - Flow monitor
@@ -50,15 +54,17 @@ A custom Home Assistant integration for monitoring and controlling Weider WT16 h
 - SGready signals
 
 ### Climate Entities
+
 - Room temperature control
 - Hot water temperature control
 
 ## Network Configuration
 
 Ensure your Weider WT16 heat pump is connected to your network and accessible via Modbus TCP:
-- Default IP: Configure on your heat pump's network settings
-- Default Port: 502
-- Default Modbus Address: 1
+
+- IP: Enter the heat pump's IP address (make sure it is static or reserved)
+- Port: 502 (default)
+- Modbus Address: 1 (default)
 
 ## Supported Models
 
@@ -67,12 +73,14 @@ Ensure your Weider WT16 heat pump is connected to your network and accessible vi
 ## Troubleshooting
 
 ### Connection Issues
+
 - Verify the heat pump is connected to your network
 - Check firewall settings allow Modbus TCP traffic on port 502
 - Ensure the IP address is correct
 - Verify Modbus TCP is enabled on the heat pump
 
 ### Sensor Data Issues
+
 - Some sensors may not be available on all heat pump configurations
 - Check the heat pump's manual for supported registers
 - Sensor values of 0 may indicate disconnected sensors
