@@ -7,8 +7,8 @@
         "data": {
           "host": "IP Address",
           "port": "Port",
-          "modbus_addr": "Modbus Address",
-          "scan_interval": "Update Interval (seconds)"
+          "scan_interval": "Update Interval (seconds)",
+          "error_timeout": "Error Timeout (seconds)"
         }
       },
       "dashboard": {
@@ -30,6 +30,22 @@
     },
     "abort": {
       "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Configuration",
+        "description": "Update the scan interval and error timeout settings.",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)",
+          "error_timeout": "Error Timeout (seconds)"
+        }
+      }
+    },
+    "error": {
+      "scan_interval": "Scan interval must be between 15 and 300 seconds",
+      "error_timeout": "Error timeout must be between 60 and 600 seconds"
     }
   }
 }

@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_HOST, CONF_PORT, CONF_MODBUS_ADDR, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, CONF_ERROR_TIMEOUT, DEFAULT_SCAN_INTERVAL, DEFAULT_ERROR_TIMEOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,8 +27,13 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
         """Initialize."""
         self.host = entry.data[CONF_HOST]
         self.port = entry.data[CONF_PORT]
-        self.modbus_addr = entry.data.get(CONF_MODBUS_ADDR, 1)
+        self.modbus_addr = 1  # Hardcoded to 1
         scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        self.error_timeout = entry.data.get(CONF_ERROR_TIMEOUT, DEFAULT_ERROR_TIMEOUT)
+
+        # Track error state
+        self.first_error_time = None
+        self.last_successful_update = None
 
         super().__init__(
             hass,
@@ -37,12 +42,62 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=scan_interval),
         )
 
+    async def async_update_config(self, entry: ConfigEntry) -> None:
+        """Update coordinator configuration from config entry."""
+        # Update scan interval
+        scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        if entry.options:
+            scan_interval = entry.options.get(CONF_SCAN_INTERVAL, scan_interval)
+
+        # Update error timeout
+        error_timeout = entry.data.get(CONF_ERROR_TIMEOUT, DEFAULT_ERROR_TIMEOUT)
+        if entry.options:
+            error_timeout = entry.options.get(CONF_ERROR_TIMEOUT, error_timeout)
+
+        # Apply new settings
+        self.error_timeout = error_timeout
+        self.update_interval = timedelta(seconds=scan_interval)
+
+        # Reset error state when config changes
+        self.first_error_time = None
+
+        _LOGGER.info("Updated configuration: scan_interval=%d, error_timeout=%d", scan_interval, error_timeout)
+
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from the heat pump."""
+        """Fetch data from the heat pump with retry mechanism."""
         try:
-            return await self.hass.async_add_executor_job(self._fetch_data)
+            data = await self.hass.async_add_executor_job(self._fetch_data)
+
+            # Reset error tracking on successful update
+            self.first_error_time = None
+            self.last_successful_update = time.time()
+
+            return data
+
         except Exception as err:
-            raise UpdateFailed(f"Error communicating with Weider WT16: {err}") from err
+            current_time = time.time()
+
+            # Track first error time
+            if self.first_error_time is None:
+                self.first_error_time = current_time
+                _LOGGER.warning("First connection error occurred, will retry for %d seconds: %s", self.error_timeout, err)
+
+            # Check if we've exceeded the error timeout
+            error_duration = current_time - self.first_error_time
+            if error_duration >= self.error_timeout:
+                # Reset error tracking and raise the error
+                self.first_error_time = None
+                raise UpdateFailed(f"Connection failed for {self.error_timeout} seconds: {err}") from err
+
+            # Log but don't raise error, return last known data if available
+            remaining_time = self.error_timeout - error_duration
+            _LOGGER.debug("Connection error (retry in %.1f seconds): %s", remaining_time, err)
+
+            # Return last known data if available, otherwise empty dict
+            if self.data:
+                return self.data
+            else:
+                return {}
 
     def _read_register_with_retry(self, client, reg_type: str, address: int, count: int = 1, retries: int = 2):
         """Read a register with retry logic for unstable connections."""
@@ -94,7 +149,6 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
 
             _LOGGER.debug("Connected to heat pump, reading registers...")
             successful_reads = 0
-            total_registers = 0
 
             # Read discrete inputs (binary sensors) - with German keys
             discrete_registers = [
@@ -113,7 +167,6 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             ]
 
             for address, key in discrete_registers:
-                total_registers += 1
                 result = self._read_register_with_retry(client, "discrete", address)
                 if result and hasattr(result, "bits"):
                     data[key] = result.bits[0]
@@ -156,7 +209,6 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             ]
 
             for address, key, scale in input_registers:
-                total_registers += 1
                 result = self._read_register_with_retry(client, "input", address)
                 if result and hasattr(result, "registers"):
                     data[key] = result.registers[0] * scale
@@ -169,7 +221,6 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             ]
 
             for address, key, scale in holding_registers:
-                total_registers += 1
                 result = self._read_register_with_retry(client, "holding", address)
                 if result and hasattr(result, "registers"):
                     data[key] = result.registers[0] * scale
@@ -182,17 +233,15 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             ]
 
             for address, key in runtime_registers:
-                total_registers += 1
                 result = self._read_register_with_retry(client, "input", address, count=2)
-                if result and hasattr(result, 'registers') and len(result.registers) >= 2:
+                if result and hasattr(result, "registers") and len(result.registers) >= 2:
                     # Combine two 16-bit registers into 32-bit value (word swapped)
                     data[key] = (result.registers[1] << 16) | result.registers[0]
                     successful_reads += 1
 
             # Read error message register (string - 16 registers)
-            total_registers += 1
             result = self._read_register_with_retry(client, "input", 63000, count=16)
-            if result and hasattr(result, 'registers') and len(result.registers) >= 16:
+            if result and hasattr(result, "registers") and len(result.registers) >= 16:
                 # Convert registers to string (2 bytes per register)
                 text_bytes = []
                 for reg in result.registers:
@@ -201,7 +250,7 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
 
                 # Convert bytes to string, removing null terminators
                 try:
-                    error_text = bytes(text_bytes).decode('utf-8', errors='ignore').rstrip('\x00')
+                    error_text = bytes(text_bytes).decode("utf-8", errors="ignore").rstrip("\x00")
                     data["aktive_fehlermeldung"] = error_text if error_text else "Keine Fehlermeldung"
                 except:
                     data["aktive_fehlermeldung"] = "Fehler beim Lesen"

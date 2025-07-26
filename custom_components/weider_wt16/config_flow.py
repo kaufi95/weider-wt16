@@ -15,70 +15,67 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CONF_MODBUS_ADDR, CONF_SCAN_INTERVAL, CONF_CREATE_DASHBOARD, DEFAULT_PORT, DEFAULT_MODBUS_ADDR, DEFAULT_SCAN_INTERVAL
+from .const import (
+    DOMAIN,
+    CONF_SCAN_INTERVAL,
+    CONF_CREATE_DASHBOARD,
+    CONF_ERROR_TIMEOUT,
+    DEFAULT_PORT,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_ERROR_TIMEOUT,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_HOST): str,
-        vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
-        vol.Optional(CONF_MODBUS_ADDR, default=DEFAULT_MODBUS_ADDR): vol.All(vol.Coerce(int), vol.Range(min=1, max=247)),
-        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
-    }
-)
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Weider WT16 Heat Pump."""
 
-    VERSION = 2
+    VERSION = 3
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate ranges manually
-            modbus_addr = user_input.get(CONF_MODBUS_ADDR, DEFAULT_MODBUS_ADDR)
-            scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-            
-            if not (1 <= modbus_addr <= 247):
-                errors[CONF_MODBUS_ADDR] = "Modbus address must be between 1 and 247"
-            elif not (10 <= scan_interval <= 300):
-                errors[CONF_SCAN_INTERVAL] = "Scan interval must be between 10 and 300 seconds"
-            else:
-                # Test the connection
-                host = user_input[CONF_HOST]
-                port = user_input.get(CONF_PORT, DEFAULT_PORT)
-
-                try:
-                    connection_result = await self._test_connection(host, port, modbus_addr)
-                    if connection_result == "success":
-                        # Store connection data for next step
-                        self._connection_data = user_input
-                        return await self.async_step_dashboard()
-                    else:
-                        errors["base"] = connection_result
-                except Exception as err:  # pylint: disable=broad-except
-                    _LOGGER.exception("Unexpected exception during connection test: %s", err)
-                    errors["base"] = "unknown"
-
-        # Build schema dynamically to ensure all fields show
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_HOST): str,
-                vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
-                vol.Optional(CONF_MODBUS_ADDR, default=DEFAULT_MODBUS_ADDR): vol.Coerce(int),
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.Coerce(int),
-            }
-        )
+            connection_result = await self._test_user_connection(user_input)
+            if connection_result == "success":
+                self._connection_data = user_input
+                return await self.async_step_dashboard()
+            errors["base"] = connection_result
 
         return self.async_show_form(
             step_id="user",
-            data_schema=data_schema,
+            data_schema=self._get_user_schema(),
             errors=errors,
+        )
+
+    async def _test_user_connection(self, user_input: dict[str, Any]) -> str:
+        """Test connection with user input."""
+        host = user_input[CONF_HOST]
+        port = user_input.get(CONF_PORT, DEFAULT_PORT)
+        modbus_addr = 1  # Hardcoded to 1
+
+        try:
+            return await self._test_connection(host, port, modbus_addr)
+        except Exception as err:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception during connection test: %s", err)
+            return "unknown"
+
+    def _get_user_schema(self) -> vol.Schema:
+        """Get the user input schema."""
+        return vol.Schema(
+            {
+                vol.Required(CONF_HOST): str,
+                vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=15, max=300)),
+                vol.Optional(CONF_ERROR_TIMEOUT, default=DEFAULT_ERROR_TIMEOUT): vol.All(vol.Coerce(int), vol.Range(min=60, max=600)),
+            }
         )
 
     async def async_step_dashboard(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -89,7 +86,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             host = final_data[CONF_HOST]
             port = final_data[CONF_PORT]
-            modbus_addr = final_data[CONF_MODBUS_ADDR]
+            modbus_addr = 1  # Hardcoded to 1
 
             await self.async_set_unique_id(f"{host}_{port}_{modbus_addr}")
             self._abort_if_unique_id_configured()
@@ -116,67 +113,55 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _test_connection(self, host: str, port: int, modbus_addr: int) -> str:
         """Test if we can connect to the device."""
-        try:
-            _LOGGER.info("Starting connection test for %s:%d (modbus addr %d)", host, port, modbus_addr)
-            result = await self.hass.async_add_executor_job(self._test_connection_sync, host, port, modbus_addr)
-            _LOGGER.info("Connection test result: %s", result)
-            return result
-        except Exception as err:
-            _LOGGER.error("Error testing connection: %s", err, exc_info=True)
-            return "unknown"
 
-    def _test_connection_sync(self, host: str, port: int, modbus_addr: int) -> str:
-        """Test connection synchronously."""
-        _LOGGER.info("Testing connection to %s:%d", host, port)
-
-        try:
-            # Test pymodbus import first
+        def test_sync():
             try:
-                from pymodbus.client import ModbusTcpClient
+                client = ModbusTcpClient(host=host, port=port, timeout=5)
+                if not client.connect():
+                    return "cannot_connect"
 
-                _LOGGER.info("PyModbus import successful")
-            except ImportError as import_err:
-                _LOGGER.error("Failed to import pymodbus: %s", import_err)
+                # Simple register read test
+                result = client.read_input_registers(address=12, count=1, slave=modbus_addr)
+                client.close()
+
+                if hasattr(result, "isError") and result.isError():
+                    return "modbus_error"
+                elif hasattr(result, "registers"):
+                    return "success"
+                else:
+                    return "modbus_error"
+
+            except ConnectionRefusedError:
+                return "connection_refused"
+            except OSError as err:
+                if "timed out" in str(err).lower():
+                    return "timeout"
+                return "network_error"
+            except Exception:
                 return "unknown"
 
-            # Create client with timeout
-            _LOGGER.info("Creating ModbusTcpClient")
-            client = ModbusTcpClient(host=host, port=port, timeout=5)
+        return await self.hass.async_add_executor_job(test_sync)
 
-            _LOGGER.info("Attempting to connect...")
-            if not client.connect():
-                _LOGGER.error("Failed to connect to %s:%d", host, port)
-                return "cannot_connect"
 
-            _LOGGER.info("Connected successfully, testing register read...")
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Weider WT16 Heat Pump."""
 
-            # Test with a known working register
-            result = client.read_input_registers(address=12, count=1, slave=modbus_addr)
-            client.close()
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
 
-            _LOGGER.info("Register read result: %s", result)
+        # Get current values from config entry
+        current_scan_interval = self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        current_error_timeout = self.config_entry.data.get(CONF_ERROR_TIMEOUT, DEFAULT_ERROR_TIMEOUT)
 
-            if hasattr(result, "isError") and result.isError():
-                _LOGGER.error("Modbus read error: %s", result)
-                return "modbus_error"
-            elif hasattr(result, "registers") and result.registers:
-                _LOGGER.info("Success! Read value: %s", result.registers[0])
-                return "success"
-            else:
-                _LOGGER.error("Unexpected result format: %s", result)
-                return "modbus_error"
-
-        except ConnectionRefusedError as err:
-            _LOGGER.error("Connection refused: %s", err)
-            return "connection_refused"
-        except OSError as err:
-            _LOGGER.error("OS Error: %s", err)
-            if "timed out" in str(err).lower():
-                return "timeout"
-            elif "no route to host" in str(err).lower():
-                return "no_route"
-            else:
-                return "network_error"
-        except Exception as err:
-            _LOGGER.error("Unexpected exception in connection test: %s", err, exc_info=True)
-            return "unknown"
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_SCAN_INTERVAL, default=current_scan_interval): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
+                    vol.Optional(CONF_ERROR_TIMEOUT, default=current_error_timeout): vol.All(vol.Coerce(int), vol.Range(min=60, max=3600)),
+                }
+            ),
+            errors={},
+        )

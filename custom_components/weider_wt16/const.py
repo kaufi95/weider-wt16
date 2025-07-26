@@ -4,13 +4,13 @@ DOMAIN = "weider_wt16"
 
 CONF_HOST = "host"
 CONF_PORT = "port"
-CONF_MODBUS_ADDR = "modbus_addr"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_CREATE_DASHBOARD = "create_dashboard"
+CONF_ERROR_TIMEOUT = "error_timeout"
 
 DEFAULT_PORT = 502
-DEFAULT_MODBUS_ADDR = 1
 DEFAULT_SCAN_INTERVAL = 60
+DEFAULT_ERROR_TIMEOUT = 600
 
 DEVICE_INFO = {
     "identifiers": {(DOMAIN, "weider_wt16_heatpump")},
