@@ -211,7 +211,13 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             for address, key, scale in input_registers:
                 result = self._read_register_with_retry(client, "input", address)
                 if result and hasattr(result, "registers"):
-                    data[key] = result.registers[0] * scale
+                    raw_value = result.registers[0]
+                    # Handle signed 16-bit values for mixer position
+                    if key == "mlt1_mischerposition":
+                        # Convert unsigned 16-bit to signed 16-bit
+                        if raw_value > 32767:
+                            raw_value = raw_value - 65536
+                    data[key] = raw_value * scale
                     successful_reads += 1
 
             # Read holding registers (setpoints) - with German keys
@@ -235,8 +241,10 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
             for address, key in runtime_registers:
                 result = self._read_register_with_retry(client, "input", address, count=2)
                 if result and hasattr(result, "registers") and len(result.registers) >= 2:
-                    # Combine two 16-bit registers into 32-bit value (word swapped)
-                    data[key] = (result.registers[1] << 16) | result.registers[0]
+                    # Combine two 16-bit registers into 32-bit value (high word first)
+                    raw_value = (result.registers[0] << 16) | result.registers[1]
+                    # Raw value is already in minutes
+                    data[key] = raw_value
                     successful_reads += 1
 
             # Read error message register (string - 16 registers)

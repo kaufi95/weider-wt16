@@ -205,7 +205,7 @@ async def async_setup_entry(
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
         ),
-        WeiderWT16Sensor(coordinator, "mlt1_mischerposition", "MLT1 Mischerposition", PERCENTAGE, None, SensorStateClass.MEASUREMENT),
+        WeiderWT16Sensor(coordinator, "mlt1_mischerposition", "MLT1 Mischerposition", "s", None, SensorStateClass.MEASUREMENT),
         WeiderWT16Sensor(coordinator, "aktuelle_schritte_cl1", "Aktuelle Schritte CL1", None, None, SensorStateClass.MEASUREMENT),
         WeiderWT16Sensor(coordinator, "aktuelle_schritte_cl2", "Aktuelle Schritte CL2", None, None, SensorStateClass.MEASUREMENT),
         WeiderWT16Sensor(
@@ -232,9 +232,9 @@ async def async_setup_entry(
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
         ),
-        WeiderWT16Sensor(coordinator, "wp1_letzte_laufzeit_pumpe", "WP1 Letzte Laufzeit Pumpe", UnitOfTime.HOURS, None, SensorStateClass.TOTAL_INCREASING),
+        WeiderWT16Sensor(coordinator, "wp1_letzte_laufzeit_pumpe", "WP1 Letzte Laufzeit Pumpe", UnitOfTime.MINUTES, None, SensorStateClass.TOTAL_INCREASING),
         WeiderWT16Sensor(
-            coordinator, "wp1_letzte_laufzeit_warmwasser", "WP1 Letzte Laufzeit Warmwasser", UnitOfTime.HOURS, None, SensorStateClass.TOTAL_INCREASING
+            coordinator, "wp1_letzte_laufzeit_warmwasser", "WP1 Letzte Laufzeit Warmwasser", UnitOfTime.MINUTES, None, SensorStateClass.TOTAL_INCREASING
         ),
         WeiderWT16Sensor(
             coordinator, "raum_soll_temperatur", "Raum-Soll-Temperatur", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT
