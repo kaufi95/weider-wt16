@@ -6,6 +6,6 @@
   "documentation": "https://github.com/kaufi95/weider-wt16",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "requirements": ["pymodbus>=3.0.0"],
+  "requirements": ["pymodbus==3.11.0"],
   "version": "1.0.0"
 }

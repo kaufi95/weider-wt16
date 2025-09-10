@@ -104,11 +104,11 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
         for attempt in range(retries + 1):
             try:
                 if reg_type == "discrete":
-                    result = client.read_discrete_inputs(address=address, count=count, unit=self.modbus_addr)
+                    result = client.read_discrete_inputs(address=address, count=count)
                 elif reg_type == "input":
-                    result = client.read_input_registers(address=address, count=count, unit=self.modbus_addr)
+                    result = client.read_input_registers(address=address, count=count)
                 elif reg_type == "holding":
-                    result = client.read_holding_registers(address=address, count=count, unit=self.modbus_addr)
+                    result = client.read_holding_registers(address=address, count=count)
                 else:
                     return None
 
@@ -300,7 +300,7 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
                         continue
                     return False
 
-                result = client.write_register(address=address, value=value, unit=self.modbus_addr)
+                result = client.write_register(address=address, value=value)
                 client.close()
 
                 if not result.isError():

@@ -121,7 +121,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return "cannot_connect"
 
                 # Simple register read test
-                result = client.read_input_registers(address=12, count=1, unit=modbus_addr)
+                result = client.read_input_registers(address=12, count=1)
                 client.close()
 
                 if hasattr(result, "isError") and result.isError():
