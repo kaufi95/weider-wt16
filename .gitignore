@@ -1,6 +1,6 @@
 # Created by https://www.toptal.com/developers/gitignore/api/homeassistant,linux,macos,windows,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=homeassistant,linux,macos,windows,python
-
+/.claude*
 ### HomeAssistant ###
 # Files with personal details
 *.crt
