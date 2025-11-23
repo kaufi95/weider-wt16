@@ -208,13 +208,20 @@ class WeiderWT16DataUpdateCoordinator(DataUpdateCoordinator):
                 (1048, "aktuelle_schritte_cl2", 1),
             ]
 
+            # Registers that should NOT be converted to signed (unsigned values)
+            unsigned_registers = {
+                "wp1_volumenstrom",
+                "aktuelle_schritte_cl1",
+                "aktuelle_schritte_cl2",
+            }
+
             for address, key, scale in input_registers:
                 result = self._read_register_with_retry(client, "input", address)
                 if result and hasattr(result, "registers"):
                     raw_value = result.registers[0]
-                    # Handle signed 16-bit values for mixer position
-                    if key == "mlt1_mischerposition":
-                        # Convert unsigned 16-bit to signed 16-bit
+                    # Convert unsigned 16-bit to signed 16-bit for temperature values
+                    # According to Weider documentation, temperature values are "2 Byte signed"
+                    if key not in unsigned_registers:
                         if raw_value > 32767:
                             raw_value = raw_value - 65536
                     data[key] = raw_value * scale
