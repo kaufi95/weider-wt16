@@ -27,9 +27,9 @@ async def async_setup_entry(
 
     entities = [
         WeiderWT16Climate(
-            coordinator, "warmwasser_temperatur", "Warmwasser Temperatur", "warmwasser_ist_temperatur", "warmwasser_soll_temperatur", 1, 35, 60, 0.5
+            coordinator, "warmwasser_temperatur", "Warmwasser Temperatur", "warmwasser_ist_temperatur", "warmwasser_soll_temperatur", 1, 15, 55, 0.5
         ),
-        WeiderWT16Climate(coordinator, "raum_soll_temperatur", "Raum Soll-Temperatur", "raum_ist_temperatur", "raum_soll_temperatur", 723, 15, 25, 0.5),
+        WeiderWT16Climate(coordinator, "raum_soll_temperatur", "Raum Soll-Temperatur", "raum_ist_temperatur", "raum_soll_temperatur", 723, 5, 35, 0.5),
     ]
 
     async_add_entities(entities)
