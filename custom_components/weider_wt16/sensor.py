@@ -232,10 +232,8 @@ async def async_setup_entry(
             SensorDeviceClass.TEMPERATURE,
             SensorStateClass.MEASUREMENT,
         ),
-        WeiderWT16Sensor(coordinator, "wp1_letzte_laufzeit_pumpe", "WP1 Letzte Laufzeit Pumpe", UnitOfTime.MINUTES, None, SensorStateClass.TOTAL_INCREASING),
-        WeiderWT16Sensor(
-            coordinator, "wp1_letzte_laufzeit_warmwasser", "WP1 Letzte Laufzeit Warmwasser", UnitOfTime.MINUTES, None, SensorStateClass.TOTAL_INCREASING
-        ),
+        WeiderWT16RuntimeSensor(coordinator, "wp1_letzte_laufzeit_pumpe", "WP1 Letzte Laufzeit Pumpe"),
+        WeiderWT16RuntimeSensor(coordinator, "wp1_letzte_laufzeit_warmwasser", "WP1 Letzte Laufzeit Warmwasser"),
         WeiderWT16Sensor(
             coordinator, "raum_soll_temperatur", "Raum-Soll-Temperatur", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT
         ),
@@ -287,3 +285,41 @@ class WeiderWT16Sensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> float | int | None:
         """Return the state of the sensor."""
         return self.coordinator.data.get(self._data_key)
+
+
+class WeiderWT16RuntimeSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a Weider WT16 runtime sensor with hours and minutes display."""
+
+    def __init__(
+        self,
+        coordinator: WeiderWT16DataUpdateCoordinator,
+        data_key: str,
+        name: str,
+    ) -> None:
+        """Initialize the runtime sensor."""
+        super().__init__(coordinator)
+        self._data_key = data_key
+        self._attr_name = name
+        self._attr_native_unit_of_measurement = None  # No unit, we'll format as string
+        self._attr_device_class = None
+        self._attr_state_class = None
+        self._attr_unique_id = f"weider_wt16_{data_key}"
+        self._attr_entity_id = f"sensor.{data_key}"
+        self._attr_device_info = DEVICE_INFO
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor formatted as hours and minutes."""
+        minutes = self.coordinator.data.get(self._data_key)
+        if minutes is None:
+            return None
+
+        # Convert minutes to hours and minutes
+        hours = minutes // 60
+        remaining_minutes = minutes % 60
+
+        # Format as "Xh Ymin"
+        if hours > 0:
+            return f"{hours}h {remaining_minutes}min"
+        else:
+            return f"{remaining_minutes}min"
